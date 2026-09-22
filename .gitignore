@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+__pycache__/
+*.pyc
+.DS_Store
+.dotnet-sdk/
+.dotnet-cli-home/
+.nuget-packages/
+.inno-setup/
+.pnpm-store/
+windows-native/artifacts/
+**/bin/
+**/obj/

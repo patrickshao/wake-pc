@@ -1,0 +1,10 @@
+{
+  "name": "Wake PC",
+  "author": "Wake PC contributors",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["utility", "network"],
+    "description": "Wake one local gaming PC, check whether it is reachable, and optionally put it back to sleep."
+  }
+}

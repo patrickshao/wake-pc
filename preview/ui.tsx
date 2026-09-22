@@ -1,0 +1,8 @@
+import type { ReactNode } from "react";
+export const staticClasses = { Title: "title" };
+export const PanelSection = ({ title, children }: { title: string; children: ReactNode }) => <section><h2>{title}</h2>{children}</section>;
+export const PanelSectionRow = ({ children }: { children: ReactNode }) => <div className="row">{children}</div>;
+export const Field = ({ label, children }: { label: string; children: ReactNode; bottomSeparator?: string }) => <div className="field"><span>{label}</span>{children}</div>;
+export const ButtonItem = ({ children, disabled, onClick }: { children: ReactNode; disabled?: boolean; onClick: () => void; layout?: string }) => <button disabled={disabled} onClick={onClick}>{children}</button>;
+export const TextField = ({ label, description, value, disabled, onChange, mustBeNumeric }: { label: string; description?: string; value: string; disabled?: boolean; onChange: React.ChangeEventHandler<HTMLInputElement>; mustBeNumeric?: boolean }) => <label className="text-field"><span>{label}</span>{description && <small>{description}</small>}<input value={value} disabled={disabled} onChange={onChange} inputMode={mustBeNumeric ? "numeric" : "text"} /></label>;
+export const ToggleField = ({ label, description, checked, disabled, onChange }: { label: string; description?: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) => <label className="toggle"><span>{label}{description && <small>{description}</small>}</span><input type="checkbox" checked={checked} disabled={disabled} onChange={event => onChange(event.target.checked)} /></label>;

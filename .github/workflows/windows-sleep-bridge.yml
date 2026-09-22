@@ -1,0 +1,118 @@
+name: Release checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          global-json-file: global.json
+
+      - name: Validate installer source policy
+        run: python -m unittest tests.test_sleep_bridge_source -v
+
+      - name: Bootstrap pinned Inno Setup compiler
+        shell: powershell
+        run: .\windows-native\scripts\bootstrap-inno.ps1
+
+      - name: Test, publish, and compile Setup.exe
+        shell: powershell
+        run: |
+          .\windows-native\scripts\build.ps1 `
+            -DotNet dotnet `
+            -InnoCompiler .\.inno-setup\ISCC.exe
+
+      - name: Upload unsigned validation artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wake-pc-sleep-bridge-windows-unsigned
+          if-no-files-found: error
+          path: |
+            windows-native/artifacts/wake-pc-sleep-bridge-v*-setup.exe
+            windows-native/artifacts/wake-pc-sleep-bridge-v*-setup.exe.sha256
+            windows-native/artifacts/WakePcBridge.exe.sha256
+
+  plugin:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.16.0
+      - name: Activate pinned pnpm
+        run: corepack enable && corepack prepare pnpm@9.15.9 --activate
+      - name: Verify dependencies, test, and package Decky
+        run: pnpm run security:verify
+      - name: Check local UI preview
+        run: pnpm run preview:check
+      - name: Upload Decky artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wake-pc-decky-${{ runner.os }}
+          if-no-files-found: error
+          path: |
+            out/wake-pc-*.zip
+            out/wake-pc-*.zip.sha256
+
+  release-artifacts:
+    needs: [build, plugin]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download Decky artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: wake-pc-decky-Linux
+          path: out
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: wake-pc-sleep-bridge-windows-unsigned
+          path: out
+      - name: Validate release pair and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          plugin_version=$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')
+          bridge_version=$(tr -d '\r\n' < windows-native/version.txt)
+          python3 scripts/validate_package.py "out/wake-pc-v$plugin_version.zip" \
+            "out/wake-pc-sleep-bridge-v$bridge_version-setup.exe" "$bridge_version"
+          cd out
+          sha256sum --check wake-pc-*.sha256
+          cp "wake-pc-sleep-bridge-v$bridge_version-setup.exe" wake-pc-sleep-bridge-latest-setup.exe
+          python3 ../scripts/write_sha256.py wake-pc-sleep-bridge-latest-setup.exe \
+            wake-pc-sleep-bridge-latest-setup.exe.sha256
+      - name: Upload complete release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wake-pc-release-assets
+          if-no-files-found: error
+          path: |
+            out/wake-pc-*.zip
+            out/wake-pc-*.exe
+            out/wake-pc-*.sha256

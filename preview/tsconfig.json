@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": "..",
+    "paths": { "@decky/ui": ["preview/ui.tsx"], "@decky/api": ["preview/api.ts"] }
+  },
+  "include": ["./*.ts", "./*.tsx", "../src"]
+}

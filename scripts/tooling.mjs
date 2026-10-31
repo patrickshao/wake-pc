@@ -36,7 +36,6 @@ export function runPnpm(args, options = {}) {
   }
   return packageManager("pnpm", args, options);
 }
-export const runNpm = (args, options = {}) => packageManager("npm", args, options);
 
 let python;
 export function runPython(args, options = {}) {

@@ -58,11 +58,6 @@ that the lock screen is shown after every Sleep -> Wake cycle.
   requires `/TRUSTEDNETWORK=1`. Setup does not change the Windows network profile.
 - The rule is port-scoped rather than process-scoped because `HttpListener` receives
   traffic through the kernel-mode HTTP.sys service.
-- The bridge uses its own TCP port instead of Steam Remote Play's reserved ports;
-  sharing a TCP listener is not possible, and Steam's process authorization does not
-  authorize HTTP.sys.
-- Decky uses Python's standard library for HTTP and HMAC; no new Python or Node
-  dependency is introduced.
 - The bridge uses the built-in Windows Forms
   `Application.SetSuspendState(PowerState.Suspend, false, false)` wrapper as the
   signed-in user: sleep rather than hibernate, non-forced, with wake events enabled.
@@ -170,25 +165,14 @@ Controls cover:
 - Broad network exposure: installer creates only one port/profile-scoped LocalSubnet
   firewall rule, shows an interactive local-network disclosure, and requires
   `/TRUSTEDNETWORK=1` for unattended installation.
-- Router reconfiguration: the tray and secret-free diagnostic report list current
-  IPv4/prefix, gateway, DHCP state, and bridge target. Decky points users there when
-  the saved PC address is no longer reachable; changing the address does not require
-  pairing again. The report also includes the baseline health result and
-  expected/current IPv4 addresses while omitting all MAC addresses.
-- Network baseline: Wake setup accepts only a physical wired adapter, never Wi-Fi or
-  a virtual adapter. After explicit confirmation, its expected MAC and IPv4 address
-  are stored as nonsecret local configuration. The tray and guide compare them with
-  live state and flag an address change, missing adapter, or missing gateway. The
-  MAC is not written to logs or diagnostic JSON, and the app neither collects router
-  credentials nor attempts to modify the router.
 
 Residual risks:
 
 - An administrator compromise on either device can recover that client's key or
   replace pairing state.
-- Another local Windows account can read, replace, or delete the shared ciphertext.
-  DPAPI prevents that account from decrypting the credential or forging modified
-  pairing contents, but it can still cause denial of service. An administrator or a
+- Another local Windows account can read, replace, or delete the shared configuration.
+  DPAPI stops it decrypting existing credentials, but it can cause denial of service or
+  replace the configuration with a sleep credential of its own. An administrator or a
   process running as the paired Windows user remains able to recover device keys.
 - A hostile LAN client can cause denial of service even though it cannot authenticate.
 - Nonce replay history and failed pairing-attempt counts are held in memory. A

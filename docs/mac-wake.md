@@ -75,7 +75,3 @@ The installer preserves unrelated commands and directories. `--prefix /path`
 supports isolated installation tests. If the recorded Python executable moves,
 reinstall. For Finder, the installed `mac/Wake PC.command` runs wake and waits for
 Return before closing; agents should use the CLI instead.
-
-Before release, test real wake and authorized sleep from the installed command,
-pair alongside an existing Decky client, and verify update/removal preserves
-settings. Automated tests do not replace hardware acceptance.

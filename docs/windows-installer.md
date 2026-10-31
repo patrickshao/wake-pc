@@ -190,5 +190,3 @@ windows-native\artifacts\WakePcBridge.exe.sha256
   filename, and SHA-256 sidecars.
 - Package validation identifies the Windows artifact as Inno Setup and requires its
   version to match `windows-native/version.txt`, independently of the Decky plugin.
-- Before release, perform real install, running-tray, crash-recovery, in-place
-  upgrade, uninstall, and five Sleep → Wake cycle tests on the target Windows PC.

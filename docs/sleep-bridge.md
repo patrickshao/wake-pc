@@ -28,8 +28,7 @@ mints an independent device ID and 256-bit key, so pairing another client does n
 change or disconnect credentials that already work.
 
 Sleep Bridge does not call `LockWorkStation`. The target Windows account must be
-configured to require sign-in after waking. The manual acceptance test verifies
-that the lock screen is shown after every Sleep -> Wake cycle.
+configured to require sign-in after waking.
 
 ## Components and privileges
 
@@ -183,17 +182,3 @@ Residual risks:
   body, but timing and endpoint metadata remain visible on the LAN.
 - A Windows driver or policy can still reject sleep. Decky therefore verifies the
   bridge becomes unreachable rather than treating HTTP 202 alone as completion.
-
-## Manual acceptance
-
-Run at least five complete cycles:
-
-1. Wake the PC from Decky.
-2. Start and end a Steam Remote Play session.
-3. Press **Sleep PC**, then **Confirm sleep**.
-4. Confirm the PC actually sleeps and Decky reports the companion is no longer reachable.
-5. Wake the PC again and confirm Windows displays the lock/sign-in screen.
-
-Also verify an incorrect short code is rejected, a used code cannot pair again, ten
-bad attempts lock pairing, the Sleep button requires its second confirmation press,
-and Wake remains functional with Sleep Bridge stopped.

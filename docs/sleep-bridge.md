@@ -36,8 +36,8 @@ that the lock screen is shown after every Sleep -> Wake cycle.
 - `WakePcBridge.exe` is a self-contained .NET 10 Windows x64 single-file app using
   only Microsoft platform APIs. The runtime has no third-party NuGet package.
 - Inno Setup 7 installs it under Program Files, creates its Add/Remove Programs
-  entry, grants local users access to the application-specific ProgramData directory,
-  and registers `supervise` in the standard machine Run key.
+  entry, and registers `supervise` in the standard machine Run key. Each Windows user's
+  settings, credentials and log live in their own `%LOCALAPPDATA%\WakePcSleepBridge`.
 - `supervise` launches the same executable in `run` mode. It restarts that child
   after an unexpected failure. **Exit until next sign-in** writes a volatile
   current-session pause, so supervisor and runtime both exit until the next sign-in.
@@ -160,8 +160,7 @@ Controls cover:
   status, and normal sleep.
 - Pairing-key disclosure at rest: Windows encrypts the per-device credential
   registry, active pairing code, hash, and expiry together with user-scoped DPAPI.
-  The shared ProgramData JSON contains only ciphertext and nonsecret runtime
-  settings. Decky stores its device ID and key as mode `0600`.
+  The per-user JSON contains only ciphertext and nonsecret runtime settings. Decky stores its device ID and key as mode `0600`.
 - Broad network exposure: installer creates only one port/profile-scoped LocalSubnet
   firewall rule, shows an interactive local-network disclosure, and requires
   `/TRUSTEDNETWORK=1` for unattended installation.
@@ -170,10 +169,7 @@ Residual risks:
 
 - An administrator compromise on either device can recover that client's key or
   replace pairing state.
-- Another local Windows account can read, replace, or delete the shared configuration.
-  DPAPI stops it decrypting existing credentials, but it can cause denial of service or
-  replace the configuration with a sleep credential of its own. An administrator or a
-  process running as the paired Windows user remains able to recover device keys.
+- A process running as the paired Windows user can recover device keys.
 - A hostile LAN client can cause denial of service even though it cannot authenticate.
 - Nonce replay history and failed pairing-attempt counts are held in memory. A
   companion restart resets them; a captured signed request still within its

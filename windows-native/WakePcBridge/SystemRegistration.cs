@@ -8,17 +8,15 @@ internal static class SystemRegistration
     public const string FirewallRuleName = "Wake PC Sleep Bridge";
     public const string LegacyTaskName = "Wake PC Sleep Bridge";
 
-    public static int Configure(string configPath)
+    public static int Configure()
     {
+        const int port = BridgeConfig.DefaultPort;
         RequireAdministrator();
         BridgeSelfTest.RunPureTests();
         StopOtherBridgeProcesses();
         DeleteLegacyScheduledTask();
 
-        BridgeConfig config = BridgeConfig.LoadOrCreate(
-            configPath,
-            out _);
-        DeleteNetworkRegistration(config.Port);
+        DeleteNetworkRegistration(port);
         try
         {
             RunNetsh(
@@ -26,7 +24,7 @@ internal static class SystemRegistration
                     "http",
                     "add",
                     "urlacl",
-                    $"url=http://+:{config.Port}/",
+                    $"url=http://+:{port}/",
                     "sddl=D:(A;;GX;;;BU)",
                 ]);
             RunNetsh(
@@ -40,40 +38,26 @@ internal static class SystemRegistration
                     "action=allow",
                     "enable=yes",
                     "protocol=TCP",
-                    $"localport={config.Port}",
+                    $"localport={port}",
                     "remoteip=LocalSubnet",
                     "profile=private,public",
                 ]);
-            VerifyNetworkRegistration(config.Port);
-            DeleteLegacyRuntimeFiles(configPath);
+            VerifyNetworkRegistration(port);
             return 0;
         }
         catch
         {
-            DeleteNetworkRegistration(config.Port);
+            DeleteNetworkRegistration(port);
             throw;
         }
     }
 
-    public static int Unconfigure(string configPath)
+    public static int Unconfigure()
     {
         RequireAdministrator();
         StopOtherBridgeProcesses();
         DeleteLegacyScheduledTask();
-        int port = 47653;
-        try
-        {
-            if (File.Exists(configPath))
-            {
-                port = BridgeConfig.Load(configPath).Port;
-            }
-        }
-        catch (ConfigException)
-        {
-            // Cleanup should remain possible even if configuration is damaged.
-        }
-
-        DeleteNetworkRegistration(port);
+        DeleteNetworkRegistration(BridgeConfig.DefaultPort);
         return 0;
     }
 
@@ -184,26 +168,6 @@ internal static class SystemRegistration
 
         throw new InvalidOperationException(
             "Another Wake PC Sleep Bridge process could not be stopped.");
-    }
-
-    private static void DeleteLegacyRuntimeFiles(string configPath)
-    {
-        string directory = Path.GetDirectoryName(configPath)
-            ?? throw new ConfigException("Configuration directory is unavailable.");
-        foreach (string name in new[]
-        {
-            "WakePcBridge.exe",
-            "sleep-bridge.ps1",
-            "run-sleep-bridge.vbs",
-            "WakePcBridge.error.txt",
-        })
-        {
-            string path = Path.Combine(directory, name);
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
     }
 
     private static void RunNetsh(

@@ -90,6 +90,16 @@ class SleepBridgeSourceTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.sources)
 
+    def test_elevated_steps_trust_no_user_writable_data(self) -> None:
+        for marker in ("users-modify", "--config", "[Dirs]", "[UninstallDelete]"):
+            with self.subTest(marker=marker):
+                self.assertNotIn(marker, self.installer)
+        registration = (self.runtime_dir / "SystemRegistration.cs").read_text(encoding="utf-8")
+        for marker in ("BridgeConfig.Load", "configPath", "File.Delete"):
+            with self.subTest(marker=marker):
+                self.assertNotIn(marker, registration)
+        self.assertIn("SpecialFolder.LocalApplicationData", self.sources)
+
     def test_runtime_has_fixed_protocol_and_authentication(self) -> None:
         for marker in (
             'path == "/v1/pair"',
@@ -223,7 +233,6 @@ class SleepBridgeSourceTests(unittest.TestCase):
             "ArchitecturesAllowed=x64compatible",
             "DefaultDirName={autopf}\\Wake PC Sleep Bridge",
             '#define AppName "Wake PC Companion"',
-            "Permissions: users-modify",
             "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
             'ValueName: "WakePcSleepBridge"',
             "AfterInstall: ConfigureSystem",

@@ -8,8 +8,8 @@ namespace WakePcBridge;
 internal static class Program
 {
     private const string Usage =
-        "WakePcBridge.exe [start|supervise|run|setup-guide|diagnose|configure-system|" +
-        "unconfigure-system] [--config <absolute-path>] | self-test";
+        "WakePcBridge.exe [start|supervise|run|setup-guide|diagnose] " +
+        "[--config <absolute-path>] | configure-system | unconfigure-system | self-test";
 
     [STAThread]
     // Keep the CLR entry point synchronous so STAThread applies to the thread
@@ -24,6 +24,18 @@ internal static class Program
             }
 
             string command = args.Length == 0 ? "start" : args[0];
+            // Elevated commands read no configuration. Older uninstallers may still pass
+            // --config, so extra arguments are ignored rather than rejected.
+            if (command == "configure-system")
+            {
+                return SystemRegistration.Configure();
+            }
+
+            if (command == "unconfigure-system")
+            {
+                return SystemRegistration.Unconfigure();
+            }
+
             string configPath;
             if (args.Length is 0 or 1)
             {
@@ -51,8 +63,6 @@ internal static class Program
                 "run" => RunBridgeAsync(configPath).GetAwaiter().GetResult(),
                 "setup-guide" => RunSetupGuide(configPath),
                 "diagnose" => RunDiagnostics(configPath),
-                "configure-system" => SystemRegistration.Configure(configPath),
-                "unconfigure-system" => SystemRegistration.Unconfigure(configPath),
                 _ => WriteUsageFailure(),
             };
         }
@@ -92,6 +102,11 @@ internal static class Program
             ?? throw new ConfigException("Configuration directory is unavailable.");
         string logPath = Path.Combine(directory, "sleep-bridge.log");
         var log = new BridgeLog(logPath);
+        if (configPath == BridgeConfig.DefaultPath)
+        {
+            BridgeConfig.RemoveLegacySharedDirectory(log);
+        }
+
         BridgeCredentials credentials = BridgeCredentials.LoadOrMigrate(
             configPath,
             logPath);
@@ -255,13 +270,13 @@ internal static class Program
     {
         try
         {
-            string? configPath = args.Length >= 3 && args[1] == "--config"
+            string configPath = args.Length >= 3 && args[1] == "--config"
                 ? args[2]
-                : null;
-            string directory = configPath is not null &&
-                Path.IsPathFullyQualified(configPath)
-                    ? Path.GetDirectoryName(configPath) ?? AppContext.BaseDirectory
-                    : AppContext.BaseDirectory;
+                : BridgeConfig.DefaultPath;
+            // Elevated failures stay in Program Files, never in a user-controlled path.
+            string directory = !IsElevated() && Path.IsPathFullyQualified(configPath)
+                ? Path.GetDirectoryName(configPath) ?? AppContext.BaseDirectory
+                : AppContext.BaseDirectory;
             File.WriteAllText(
                 Path.Combine(directory, "WakePcBridge.error.txt"),
                 BridgeLog.Redact(exception.ToString()));

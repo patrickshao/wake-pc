@@ -53,7 +53,8 @@ the release notes. These checks require real hardware and are not replaced by CI
 - Install the companion; pair, reject a wrong code, and reject reuse of a code.
 - Complete five Wake → Remote Play → confirmed Sleep → Wake cycles. Confirm the
   lock/sign-in screen after waking and that Wake works with the companion stopped.
-- Upgrade while the companion is running; confirm settings and pairing survive.
+- Upgrade while the companion is running; confirm settings and pairing survive. From
+  1.0.0, confirm the finish screen asks for a new pairing and that pairing works.
 - Verify sign-in startup, crash recovery, and **Exit until next sign-in**.
 - Uninstall; confirm files, startup entry, URL reservation, and firewall rule are
   removed. See [Windows acceptance](windows-installer.md#validation-gates).

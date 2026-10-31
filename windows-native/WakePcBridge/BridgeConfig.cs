@@ -54,10 +54,37 @@ public sealed class BridgeConfig
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string PairingCode { get; init; } = string.Empty;
 
+    public const int DefaultPort = 47653;
+
     public static string DefaultPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "WakePcSleepBridge",
         "config.json");
+
+    /// <summary>
+    /// Earlier versions kept data in a folder every local user could edit. Its contents
+    /// are never read; the signed-in user removes it unless it now points elsewhere.
+    /// </summary>
+    public static void RemoveLegacySharedDirectory(BridgeLog log)
+    {
+        string directory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "WakePcSleepBridge");
+        try
+        {
+            if (Directory.Exists(directory) &&
+                !File.GetAttributes(directory).HasFlag(FileAttributes.ReparsePoint))
+            {
+                Directory.Delete(directory, recursive: true);
+                log.Write("Removed the previous shared data folder.");
+            }
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+            log.Write("The previous shared data folder could not be removed.");
+        }
+    }
 
     public static BridgeConfig LoadOrCreate(string path, out bool created)
     {
@@ -275,7 +302,7 @@ public sealed class BridgeConfig
     {
         return new BridgeConfig
         {
-            Port = 47653,
+            Port = DefaultPort,
             SleepDelayMs = 750,
             PairingCodeHash = string.Empty,
         }.Validate();

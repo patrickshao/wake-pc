@@ -1,8 +1,8 @@
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.1.0"
 #endif
 #ifndef AppVersionNumeric
-  #define AppVersionNumeric "1.0.0.0"
+  #define AppVersionNumeric "1.1.0.0"
 #endif
 #ifndef SourceExe
   #define SourceExe "..\windows-native\artifacts\publish\WakePcBridge.exe"

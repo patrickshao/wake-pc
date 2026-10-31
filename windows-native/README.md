@@ -4,7 +4,7 @@
 without it; the companion adds authenticated on-demand sleep plus setup/status
 tools. It is a .NET 10 `net10.0-windows` self-contained, single-file
 `win-x64` Windows-subsystem application. It has no console or main window. A custom
-notification-area icon shows **Wake PC Companion 1.0.0 — Running** and provides
+notification-area icon shows **Wake PC Companion 1.1.0 — Running** and provides
 **Setup & status…**, one **Advanced diagnostics…** action, and **Exit until next
 sign-in**. Pairing lives only in Setup & status.
 Startup is silent: the icon does

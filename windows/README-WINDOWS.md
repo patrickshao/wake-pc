@@ -36,13 +36,13 @@ Interactive setup has no separate checkbox or license agreement page. For unatte
 deployment, trusted-network confirmation must be explicit:
 
 ```text
-wake-pc-sleep-bridge-v1.0.0-setup.exe /VERYSILENT /NORESTART /TRUSTEDNETWORK=1
+wake-pc-sleep-bridge-v1.1.0-setup.exe /VERYSILENT /NORESTART /TRUSTEDNETWORK=1
 ```
 
 ## Use
 
 The notification-area tooltip includes the installed version, for example
-**Wake PC Companion 1.0.0 — Running**. Right-click
+**Wake PC Companion 1.1.0 — Running**. Right-click
 the icon to:
 
 - see whether Wake is ready and Sleep PC is enabled;

@@ -36,8 +36,11 @@ in `docs/sleep-bridge.md`.
   reviewed build-only exceptions; neither is shipped.
 - The locked-graph checker submits every exact production and development version to
   npm's supported bulk advisory endpoint and fails for any known severity. A finding
-  requires remediation or an explicit, documented risk acceptance; a zero-result scan
-  is expected for this project.
+  requires remediation or an explicit risk acceptance in
+  `security/accepted-advisories.json`. An acceptance names one advisory, one package
+  and its exact versions, with a reason and a review date. It fails the gate when it
+  expires, when a new version of the package is installed, when the scan stops
+  reporting it, or when the package is a production dependency.
 - Registry signatures and provenance attestations are checked separately because
   integrity, authenticity, provenance, and absence of known vulnerabilities are
   different properties.

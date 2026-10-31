@@ -115,7 +115,7 @@ pnpm run security:verify
 To also validate a locally built Windows installer, run
 `pnpm run security:verify --with-companion`. The **Release checks** workflow builds
 and validates both platforms and uploads `wake-pc-release-assets`. See the
-[release runbook](docs/releasing.md) for the remaining device checks and publication.
+[release steps](docs/releasing.md) for publishing.
 
 See [SECURITY.md](SECURITY.md) for the enforced package policy. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) records the
 bundled Decky API client and its included LGPL source. Packaging also writes

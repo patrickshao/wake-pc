@@ -108,14 +108,30 @@ def validate_bridge(installer: Path, expected_version: str) -> None:
     )
 
 
+def check_bundled_sources(source_map: bytes) -> None:
+    """Only first-party source and the audited production client may be bundled."""
+    for source in json.loads(source_map)["sources"]:
+        if "node_modules/" in source:
+            allowed = "node_modules/@decky/api/" in source
+        else:
+            allowed = "/src/" in source
+        if not allowed:
+            raise SystemExit(f"Bundle contains an unexpected source: {source}")
+
+
 def main() -> None:
-    if len(sys.argv) not in (2, 4):
+    args = sys.argv[1:]
+    # Never run packaged code in a job that also holds Setup.exe: it could replace it.
+    static = "--static" in args
+    if static:
+        args.remove("--static")
+    if len(args) not in (1, 3):
         raise SystemExit(
-            f"Usage: {Path(sys.argv[0]).name} <plugin.zip> "
+            f"Usage: {Path(sys.argv[0]).name} [--static] <plugin.zip> "
             "[<sleep-bridge-setup.exe> <companion-version>]"
         )
 
-    archive = Path(sys.argv[1]).resolve()
+    archive = Path(args[0]).resolve()
     with zipfile.ZipFile(archive) as package:
         names = set(package.namelist())
         bad_member = package.testzip()
@@ -151,24 +167,26 @@ def main() -> None:
         flags = manifest.get("flags", [])
         if flags:
             raise SystemExit("Release packages must not enable development or privilege flags")
+        check_bundled_sources(package.read("wake-pc/dist/index.js.map"))
 
-        with tempfile.TemporaryDirectory() as directory:
-            package.extractall(directory)
-            subprocess.run(
-                [
-                    sys.executable,
-                    "-I",
-                    "-c",
-                    HARNESS,
-                    str(Path(directory) / "wake-pc"),
-                ],
-                check=True,
-            )
+        if not static:
+            with tempfile.TemporaryDirectory() as directory:
+                package.extractall(directory)
+                subprocess.run(
+                    [
+                        sys.executable,
+                        "-I",
+                        "-c",
+                        HARNESS,
+                        str(Path(directory) / "wake-pc"),
+                    ],
+                    check=True,
+                )
 
-    print(f"Packaged backend startup validated: {archive}")
-    if len(sys.argv) == 4:
-        bridge_archive = Path(sys.argv[2]).resolve()
-        bridge_version = sys.argv[3]
+    print(f"Package validated{' without running it' if static else ''}: {archive}")
+    if len(args) == 3:
+        bridge_archive = Path(args[1]).resolve()
+        bridge_version = args[2]
         validate_bridge(bridge_archive, bridge_version)
 
 

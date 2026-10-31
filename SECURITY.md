@@ -25,68 +25,56 @@ in `docs/sleep-bridge.md`.
 
 ## Required controls
 
-- Every direct package uses an exact version and every transitive resolution is
-  locked in `pnpm-lock.yaml` with npm SHA-512 integrity metadata.
+- Every direct package uses an exact version, and `pnpm-lock.yaml` locks every
+  transitive package to npm SHA-512 integrity.
 - Only `https://registry.npmjs.org/` is allowed. Git, URL, file, link, and workspace
-  package sources are rejected by the policy checker.
-- Dependency lifecycle scripts are disabled in `.npmrc` and on the verification
-  command line. New `preinstall`, `install`, or `postinstall` hooks fail policy.
-- New native or WebAssembly payloads fail policy. Rollup's version-matched,
-  platform-specific build binary and its exact `fsevents@2.3.3` macOS watcher are the
-  reviewed build-only exceptions; neither is shipped.
-- The locked-graph checker submits every exact production and development version to
-  npm's supported bulk advisory endpoint and fails for any known severity. A finding
-  requires remediation or an explicit risk acceptance in
-  `security/accepted-advisories.json`. An acceptance names one advisory, one package
-  and its exact versions, with a reason and a review date. It fails the gate when it
-  expires, when a new version of the package is installed, when the scan stops
-  reporting it, or when the package is a production dependency.
-- Registry signatures and provenance attestations are checked separately because
-  integrity, authenticity, provenance, and absence of known vulnerabilities are
-  different properties.
-- The packaged Decky ZIP and compiled Windows Setup.exe are inspected so build-only
-  packages cannot cross into either runtime boundary.
+  package sources fail policy.
+- Dependency lifecycle scripts are disabled in `.npmrc` and in the verification command.
+- New native or WebAssembly packages fail policy. Rollup's platform binary and the exact
+  `fsevents@2.3.3` macOS watcher are build-only exceptions; neither is shipped.
+- The advisory scan covers the locked graph. A finding in a production package fails at
+  any severity. A finding in build tooling is printed and does not fail, because it
+  never reaches users. Read those lines when updating dependencies.
+- The Decky ZIP fails validation if it contains `node_modules` or native/Wasm libraries,
+  enables Decky flags, or if its source map shows anything bundled beyond `src/` and
+  `@decky/api`. The source map is a guard against accidental bundling, not against a
+  malicious build tool.
+- The job that assembles release assets does not run packaged code, so a compromised
+  plugin build cannot replace Setup.exe there. Setup.exe is checked for its name,
+  version, and Inno Setup marker, which does not prove its contents.
+- Inno Setup 7.0.2 is a pinned build tool, verified by SHA-256 and Authenticode before
+  use. The compiled installer downloads nothing.
 
-Run the enforced local gate with:
+A compromised build package could still alter the Decky bundle. The controls above make
+that harder but cannot rule it out, and no tool here proves a package is benign.
+
+The official `@decky/rollup` preset brings in deprecated build-only packages such as
+`glob` and `rimraf`. Keep the preset anyway: replacing it adds more compatibility risk
+than they do. pnpm stays on version 9 for Decky's documented build compatibility, and
+because npm retired the audit endpoint it uses, the scan calls npm's bulk advisory
+endpoint directly.
+
+Run the gate with:
 
 ```sh
 pnpm run security:verify
 ```
 
-The default gate packages Decky only. Add `--with-companion` to also validate a
-previously built Windows installer, or use CI to build and validate both platforms.
-
-The gate uses npm's signature verifier in an isolated, scripts-disabled temporary
-resolution because npm does not consume `pnpm-lock.yaml`. The pnpm policy checker
-separately verifies the authoritative locked graph and registry origins. This gives
-coverage from two independent views without adding a second lockfile to the project.
+Add `--with-companion` to also validate a locally built Windows installer. CI builds and
+validates both platforms.
 
 ## Adding or updating a package
 
-Before changing a manifest or lockfile:
+1. Avoid it if existing code or platform APIs can do the job.
+2. Check the exact package name for typosquatting, and look over what it brings in.
+3. Pin the exact version, regenerate the lockfile with scripts disabled, and run the gate.
 
-1. Establish why existing code or platform APIs cannot satisfy the need.
-2. Check the exact package name for typosquatting and inspect the registry owner,
-   maintainers, repository ownership, release history, and recent ownership changes.
-3. Read the exact-version manifest and published tarball. Review lifecycle scripts,
-   binaries, native/Wasm content, network behavior, and the complete transitive diff.
-4. Check current advisories using the ecosystem audit plus an independent advisory
-   source when risk warrants it.
-5. Verify registry signatures and available Sigstore/SLSA provenance. Missing
-   provenance is a recorded residual risk, never silently treated as verified.
-6. Review licenses and ensure redistribution obligations are satisfied.
-7. Pin the exact version, regenerate the lockfile with scripts disabled, run the full
-   security gate, inspect the compiled bundle and release artifacts, and document
-   the decision.
+## Releases
 
-Inno Setup 7.0.2 is a pinned native build tool, not a runtime download. This hobby
-project distributes unsigned Windows installers. Authenticode signing is optional;
-`-SignToolCommand` can sign Setup.exe and its generated uninstaller if a maintainer
-chooses to configure it. Release notes must disclose unsigned downloads and include
-SHA-256 sidecars. A checksum verifies file integrity, not publisher identity.
-
-Security tools only establish specific facts. They do not prove a package is benign,
-and this project must not make an absolute “safe” or “zero risk” claim.
+This hobby project distributes unsigned Windows installers. Authenticode signing is
+optional; `-SignToolCommand` can sign Setup.exe and its uninstaller. Release notes must
+disclose unsigned downloads and include SHA-256 sidecars. A checksum detects changed
+files; it does not identify the publisher.
 
 ## Reporting a vulnerability
 

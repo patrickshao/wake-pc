@@ -100,7 +100,7 @@ jobs:
           set -euo pipefail
           plugin_version=$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')
           bridge_version=$(tr -d '\r\n' < windows-native/version.txt)
-          python3 scripts/validate_package.py "out/wake-pc-v$plugin_version.zip" \
+          python3 scripts/validate_package.py --static "out/wake-pc-v$plugin_version.zip" \
             "out/wake-pc-sleep-bridge-v$bridge_version-setup.exe" "$bridge_version"
           cd out
           sha256sum --check wake-pc-*.sha256

@@ -43,7 +43,7 @@ def main():
     shutil.rmtree(stage.parent, ignore_errors=True)
     for name in ("dist/index.js", "dist/index.js.map", "main.py", "py_modules/wakepc.py",
                  "package.json", "plugin.json", "README.md", "SECURITY.md", "LICENSE",
-                 "THIRD_PARTY_NOTICES.md", "security/supply-chain-review.md"):
+                 "THIRD_PARTY_NOTICES.md"):
         copy(ROOT / name, stage / name)
     for path in (ROOT / "src").rglob("*"):
         if path.is_file():

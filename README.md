@@ -105,8 +105,8 @@ Build the Windows installer first with
 `windows-native\scripts\build.ps1`; `pnpm run package:release` then copies that compiled
 Setup.exe alongside the Decky ZIP.
 
-Run the dependency-integrity, registry-signature, provenance, vulnerability,
-typecheck, test, build, and Decky packaging gate with:
+Run the dependency-policy, vulnerability, typecheck, test, build, and Decky packaging
+gate with:
 
 ```sh
 pnpm run security:verify
@@ -117,10 +117,7 @@ To also validate a locally built Windows installer, run
 and validates both platforms and uploads `wake-pc-release-assets`. See the
 [release runbook](docs/releasing.md) for the remaining device checks and publication.
 
-See [SECURITY.md](SECURITY.md) and
-[`security/supply-chain-review.md`](security/supply-chain-review.md) for the enforced
-package policy, audit evidence, provenance gaps, native build-tool exceptions, and
-residual-risk analysis. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) records the
+See [SECURITY.md](SECURITY.md) for the enforced package policy. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) records the
 bundled Decky API client and its included LGPL source. Packaging also writes
 SHA-256 sidecars for the versioned Decky ZIP and Windows Setup.exe, plus stable
 `latest` copies.

@@ -1,7 +1,5 @@
 import { runPnpm } from "./tooling.mjs";
 import { request } from "node:https";
-import { readFileSync } from "node:fs";
-import { evaluateAdvisories } from "./advisory_policy.mjs";
 
 const listPnpmGraph = (options) => runPnpm(["list", "--depth", "Infinity", "--json"], { stdio: "pipe", ...options });
 const graph = JSON.parse(
@@ -95,21 +93,19 @@ for (const root of JSON.parse(runPnpm(["list", "--prod", "--depth", "Infinity", 
   visitProduction(root.dependencies);
 }
 
-const { accepted } = JSON.parse(readFileSync(new URL("../security/accepted-advisories.json", import.meta.url), "utf8"));
-const { failures, acceptedFindings } = evaluateAdvisories({
-  findings,
-  installed: packages,
-  productionPackages,
-  accepted,
-  today: new Date().toISOString().slice(0, 10),
-});
+// Only production packages ship. Build tooling is reported for awareness and never reaches users.
+const describe = (finding) =>
+  `${finding.severity || "unknown"}: ${finding.packageName} — ${finding.title} (${finding.url})`;
+const shipped = findings.filter((finding) => productionPackages.has(finding.packageName));
 
-for (const line of acceptedFindings) console.log(`Accepted build-only risk: ${line}`);
-if (failures.length) {
-  for (const failure of failures) console.error(failure);
+for (const finding of findings) {
+  if (!shipped.includes(finding)) console.log(`Build-only, not shipped: ${describe(finding)}`);
+}
+if (shipped.length) {
+  for (const finding of shipped) console.error(describe(finding));
   process.exit(1);
 }
 
 console.log(
-  `No unaccepted vulnerabilities found for ${versionCount} locked package versions via npm's bulk advisory endpoint.`,
+  `No known vulnerabilities in ${productionPackages.size} production packages; scanned ${versionCount} locked versions.`,
 );

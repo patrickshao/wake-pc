@@ -33,7 +33,7 @@ class PackageTests(unittest.TestCase):
                 sidecar.read_text(),
             )
 
-    def validate(self, *, omitted=None, flags=None, extra=None):
+    def validate(self, *, omitted=None, flags=None, extra=None, sources=None, main_py=None, static=False):
         version = json.loads((ROOT / "package.json").read_text())["version"]
         with tempfile.TemporaryDirectory() as directory:
             archive = Path(directory) / f"wake-pc-v{version}.zip"
@@ -48,18 +48,47 @@ class PackageTests(unittest.TestCase):
                         manifest = json.loads(contents)
                         manifest["flags"] = flags
                         contents = json.dumps(manifest).encode()
+                    if name == "wake-pc/dist/index.js.map":
+                        contents = json.dumps({"sources": sources or [
+                            "decky://decky/plugin/Wake%20PC/node_modules/.pnpm/@decky+api@1.1.3/node_modules/@decky/api/dist/index.js",
+                            "decky://decky/plugin/Wake%20PC/src/index.tsx",
+                        ]}).encode()
+                    if name == "wake-pc/main.py" and main_py is not None:
+                        contents = main_py
                     package.writestr(name, contents)
                 if extra:
                     package.writestr(extra, b"unexpected")
             return subprocess.run(
-                [sys.executable, str(VALIDATOR), str(archive)],
+                [sys.executable, str(VALIDATOR), *(["--static"] if static else []), str(archive)],
                 capture_output=True, text=True,
             )
 
     def test_plugin_validates_without_a_windows_installer(self):
         result = self.validate()
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn("Packaged backend startup validated", result.stdout)
+        self.assertIn("Package validated", result.stdout)
+
+    def test_static_validation_does_not_run_packaged_code(self):
+        planted = b"raise SystemExit(7)\n"
+        self.assertNotEqual(0, self.validate(main_py=planted).returncode)
+        result = self.validate(main_py=planted, static=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("without running it", result.stdout)
+
+    def test_static_validation_still_checks_the_package(self):
+        result = self.validate(flags=["root"], static=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("must not enable", result.stderr)
+
+    def test_only_first_party_source_and_decky_api_may_be_bundled(self):
+        for source in (
+            "decky://decky/plugin/Wake%20PC/node_modules/.pnpm/glob@10.5.0/node_modules/glob/index.js",
+            "decky://decky/plugin/Wake%20PC/scripts/build.js",
+        ):
+            with self.subTest(source=source):
+                result = self.validate(sources=[source])
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("unexpected source", result.stderr)
 
     def test_incomplete_frontend_source_is_rejected(self):
         result = self.validate(omitted="wake-pc/source/src/runtime.ts")

@@ -23,10 +23,11 @@ warning; signing is not required to build or release this project.
 Pairing is optional and only enables **Sleep PC**. Choose **Pair for Sleep…**, then
 enter the six-digit code in Decky or run `wake-pc pair` on your Mac. Use **Pair another for Sleep…** for each additional
 device. Codes expire after 30 minutes and work once. Updating in place preserves
-saved setup and paired devices; do not uninstall first.
+saved setup and paired devices; do not uninstall first. Upgrading from 1.0.0 is the one
+exception: its data folder moved, so pair your devices again once.
 
 Setup installs the app under Program Files, keeps nonsecret settings, DPAPI-encrypted
-credentials, and the log under ProgramData, adds an Add/Remove Programs entry, and
+credentials, and the log in each user's local app data, adds an Add/Remove Programs entry, and
 starts it for signed-in Windows users through the standard machine Run key. It
 creates one HTTP.sys URL reservation and one inbound Windows Firewall rule for TCP
 `47653`, restricted to the local subnet on Private and Public profiles.
@@ -35,13 +36,13 @@ Interactive setup has no separate checkbox or license agreement page. For unatte
 deployment, trusted-network confirmation must be explicit:
 
 ```text
-wake-pc-sleep-bridge-v1.0.0-setup.exe /VERYSILENT /NORESTART /TRUSTEDNETWORK=1
+wake-pc-sleep-bridge-v1.1.0-setup.exe /VERYSILENT /NORESTART /TRUSTEDNETWORK=1
 ```
 
 ## Use
 
 The notification-area tooltip includes the installed version, for example
-**Wake PC Companion 1.0.0 — Running**. Right-click
+**Wake PC Companion 1.1.0 — Running**. Right-click
 the icon to:
 
 - see whether Wake is ready and Sleep PC is enabled;
@@ -76,8 +77,8 @@ C:\Program Files\Wake PC Sleep Bridge\WakePcBridge.exe
 Configuration and log:
 
 ```text
-C:\ProgramData\WakePcSleepBridge\config.json
-C:\ProgramData\WakePcSleepBridge\sleep-bridge.log
+%LOCALAPPDATA%\WakePcSleepBridge\config.json
+%LOCALAPPDATA%\WakePcSleepBridge\sleep-bridge.log
 ```
 
 The per-device keys and active pairing material are encrypted at rest with Windows
@@ -90,8 +91,8 @@ single-use nonce.
 
 Open **Settings → Apps → Installed apps**, find **Wake PC Companion**, and choose
 **Uninstall**. The standard uninstaller removes the startup entry, firewall rule,
-HTTP URL reservation, program, configuration, pairing key, diagnostic files, and
-log. A reboot is not required.
+HTTP URL reservation, and program. A reboot is not required. Your settings, pairing
+keys, and log stay in `%LOCALAPPDATA%\WakePcSleepBridge`; delete that folder to erase them.
 
 ## Troubleshooting
 

@@ -1,8 +1,8 @@
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.1.0"
 #endif
 #ifndef AppVersionNumeric
-  #define AppVersionNumeric "1.0.0.0"
+  #define AppVersionNumeric "1.1.0.0"
 #endif
 #ifndef SourceExe
   #define SourceExe "..\windows-native\artifacts\publish\WakePcBridge.exe"
@@ -11,8 +11,6 @@
 #define AppName "Wake PC Companion"
 #define AppExeName "WakePcBridge.exe"
 #define AppUrl "https://github.com/patrickshao/wake-pc"
-#define DataDirectory "{commonappdata}\WakePcSleepBridge"
-#define ConfigPath DataDirectory + "\config.json"
 
 [Setup]
 AppId={{EE345E29-5C07-44F9-A41B-5826C96C6356}
@@ -56,9 +54,6 @@ SignedUninstaller=yes
 SignedUninstaller=no
 #endif
 
-[Dirs]
-Name: "{#DataDirectory}"; Permissions: users-modify
-
 [Files]
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "{#AppExeName}"; \
   Flags: ignoreversion; AfterInstall: ConfigureSystem
@@ -68,17 +63,17 @@ Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; \
 [Registry]
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
   ValueType: string; ValueName: "WakePcSleepBridge"; \
-  ValueData: """{app}\{#AppExeName}"" supervise --config ""{#ConfigPath}"""; \
+  ValueData: """{app}\{#AppExeName}"" supervise"; \
   Flags: uninsdeletevalue
 
 [Icons]
 Name: "{commonprograms}\Wake PC Companion"; \
   Filename: "{app}\{#AppExeName}"; \
-  Parameters: "start --config ""{#ConfigPath}"""; \
+  Parameters: "start"; \
   WorkingDir: "{app}"
 Name: "{commonprograms}\Wake PC Setup & Status"; \
   Filename: "{app}\{#AppExeName}"; \
-  Parameters: "setup-guide --config ""{#ConfigPath}"""; \
+  Parameters: "setup-guide"; \
   WorkingDir: "{app}"
 
 [Messages]
@@ -86,23 +81,36 @@ FinishedLabel=Wake PC Companion is installed.%n%nUse Setup & status from the tra
 
 [Run]
 Filename: "{app}\{#AppExeName}"; \
-  Parameters: "start --config ""{#ConfigPath}"""; \
+  Parameters: "start"; \
   Description: "Start Wake PC Companion"; \
   Flags: postinstall nowait runasoriginaluser skipifsilent
 
 [UninstallRun]
 Filename: "{app}\{#AppExeName}"; \
-  Parameters: "unconfigure-system --config ""{#ConfigPath}"""; \
+  Parameters: "unconfigure-system"; \
   RunOnceId: "UnconfigureWakePcSleepBridge"; \
   Flags: runhidden waituntilterminated skipifdoesntexist
-
-[UninstallDelete]
-Type: filesandordirs; Name: "{#DataDirectory}"
 
 [Code]
 var
   TrustedNetworkPage: TOutputMsgWizardPage;
   BridgeStoppedForSetup: Boolean;
+  UpgradingFromSharedData: Boolean;
+
+function InitializeSetup: Boolean;
+begin
+  // Version 1.0.0 stored data here. Only its existence is checked; nothing is read from it.
+  UpgradingFromSharedData := DirExists(ExpandConstant('{commonappdata}\WakePcSleepBridge'));
+  Result := True;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpFinished) and UpgradingFromSharedData then
+    WizardForm.FinishedLabel.Caption := WizardForm.FinishedLabel.Caption + #13#10#13#10 +
+      'Wake PC Companion now keeps its data in your user profile, so Sleep PC needs ' +
+      'pairing once more. Choose Pair for Sleep in Setup & status, then enter the code in Wake PC.';
+end;
 
 function TrustedNetworkAcceptedByParameter: Boolean;
 begin
@@ -182,7 +190,7 @@ var
   Parameters: String;
 begin
   Executable := ExpandConstant('{app}\{#AppExeName}');
-  Parameters := Format('configure-system --config "%s"', [ExpandConstant('{#ConfigPath}')]);
+  Parameters := 'configure-system';
   Log('Configuring HTTP.sys and Windows Firewall.');
   if not Exec(
     Executable,
@@ -198,6 +206,6 @@ begin
   end;
   if ResultCode <> 0 then
   begin
-    RaiseException(Format('Wake PC system configuration failed with exit code %d. See %s.', [ResultCode, ExpandConstant('{#DataDirectory}\WakePcBridge.error.txt')]));
+    RaiseException(Format('Wake PC system configuration failed with exit code %d. See %s.', [ResultCode, ExpandConstant('{app}\WakePcBridge.error.txt')]));
   end;
 end;

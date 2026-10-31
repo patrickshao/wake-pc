@@ -90,7 +90,7 @@ without requiring Windows.
 `pnpm run package:release` additionally packages a previously built companion:
 
 - `out/wake-pc-v1.0.0.zip` for Decky on SteamOS handhelds.
-- `out/wake-pc-sleep-bridge-v1.0.0-setup.exe` for the Windows gaming PC.
+- `out/wake-pc-sleep-bridge-v1.1.0-setup.exe` for the Windows gaming PC.
 
 The first public release is 1.0.0 for both components; earlier 1.x builds were
 private development versions. The two products version independently:

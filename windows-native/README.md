@@ -4,7 +4,7 @@
 without it; the companion adds authenticated on-demand sleep plus setup/status
 tools. It is a .NET 10 `net10.0-windows` self-contained, single-file
 `win-x64` Windows-subsystem application. It has no console or main window. A custom
-notification-area icon shows **Wake PC Companion 1.0.0 — Running** and provides
+notification-area icon shows **Wake PC Companion 1.1.0 — Running** and provides
 **Setup & status…**, one **Advanced diagnostics…** action, and **Exit until next
 sign-in**. Pairing lives only in Setup & status.
 Startup is silent: the icon does
@@ -45,17 +45,17 @@ Restart Manager remains enabled as a fallback if either process could not be sto
 ## Runtime modes
 
 ```text
-WakePcBridge.exe start [--config C:\ProgramData\WakePcSleepBridge\config.json]
-WakePcBridge.exe supervise [--config C:\ProgramData\WakePcSleepBridge\config.json]
-WakePcBridge.exe run [--config C:\ProgramData\WakePcSleepBridge\config.json]
-WakePcBridge.exe setup-guide [--config C:\ProgramData\WakePcSleepBridge\config.json]
-WakePcBridge.exe diagnose [--config C:\ProgramData\WakePcSleepBridge\config.json]
-WakePcBridge.exe configure-system [--config C:\ProgramData\WakePcSleepBridge\config.json]
-WakePcBridge.exe unconfigure-system [--config C:\ProgramData\WakePcSleepBridge\config.json]
+WakePcBridge.exe start [--config <absolute-path>]
+WakePcBridge.exe supervise [--config <absolute-path>]
+WakePcBridge.exe run [--config <absolute-path>]
+WakePcBridge.exe setup-guide [--config <absolute-path>]
+WakePcBridge.exe diagnose [--config <absolute-path>]
+WakePcBridge.exe configure-system
+WakePcBridge.exe unconfigure-system
 WakePcBridge.exe self-test
 ```
 
-With no arguments the app behaves as `start` using the ProgramData config path.
+With no arguments the app behaves as `start`, using `%LOCALAPPDATA%\WakePcSleepBridge\config.json`.
 `configure-system` and `unconfigure-system` require elevation and are called only by
 the Inno installer. They own the bounded HTTP.sys URL reservation, Windows Firewall
 rule, and cleanup of the superseded development scheduled task. Runtime modes refuse
@@ -95,9 +95,5 @@ without a shell or user-controlled command strings.
 The per-device key registry, active one-time pairing code, its hash, and expiry are
 serialized together and encrypted with Windows DPAPI using `CurrentUser`. A fresh
 installation creates the empty registry directly in that protected payload and each
-pairing adds an independent credential. On the first launch after upgrading an older
-installation, its sole key becomes the `primary` device credential without rotation;
-legacy plaintext fields are atomically removed. The ProgramData JSON contains only
-DPAPI ciphertext and nonsecret runtime settings. Another local account can still
-delete the shared file and cause a denial of service, but cannot decrypt or silently
-rewrite its credential contents.
+pairing adds an independent credential. The JSON in `%LOCALAPPDATA%` contains only DPAPI
+ciphertext and nonsecret runtime settings.

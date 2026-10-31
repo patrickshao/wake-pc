@@ -24,26 +24,28 @@ executable owns those two bounded operations.
 | Resource | Owner and lifecycle |
 | --- | --- |
 | `C:\Program Files\Wake PC Sleep Bridge\WakePcBridge.exe` | Inno `[Files]`; replaced on upgrade and removed on uninstall |
-| `C:\ProgramData\WakePcSleepBridge` | Inno `[Dirs]`; contains nonsecret settings, current-user DPAPI ciphertext, and logs; removed on uninstall |
+| `%LOCALAPPDATA%\WakePcSleepBridge` | Created per user by the non-elevated app; contains nonsecret settings, current-user DPAPI ciphertext, and logs; removed on uninstall |
 | Add/Remove Programs entry | Inno, keyed by stable AppId `{EE345E29-5C07-44F9-A41B-5826C96C6356}` |
 | HKLM Run value `WakePcSleepBridge` | Inno `[Registry]`; launches `supervise`; removed on uninstall |
 | HTTP URL ACL `http://+:47653/` | `configure-system`; grants execute to built-in Users; removed by `unconfigure-system` |
 | Firewall rule `Wake PC Sleep Bridge` | `configure-system`; TCP 47653, LocalSubnet, Private/Public; removed by `unconfigure-system` |
 | Start Menu shortcuts | Inno `[Icons]`; one launches `start`, one opens `setup-guide`; removed on uninstall |
 
-The installer may clean up the previously tested development scheduled task and
-ProgramData runtime executable, but it does not ship or retain a legacy installer.
-Existing paired devices are preserved during an in-place Setup.exe upgrade. On the
-first non-elevated launch, the sole older key becomes the `primary` device credential
-inside a current-user DPAPI-protected registry without rotating the key. Legacy
-plaintext key and pairing fields are atomically removed.
+The installer may clean up the previously tested development scheduled task, but it
+does not ship or retain a legacy installer. Elevated commands read nothing from a
+user-writable location.
+
+Version 1.0.0 kept data in a `ProgramData` folder every local user could edit. Newer
+versions never read that folder, so upgrading from 1.0.0 needs one new pairing, which
+the installer's finish screen explains. The non-elevated app removes the old folder at
+first launch, skipping it if it is a link.
 
 ## Runtime model
 
 The machine Run entry launches:
 
 ```text
-WakePcBridge.exe supervise --config C:\ProgramData\WakePcSleepBridge\config.json
+WakePcBridge.exe supervise
 ```
 
 `supervise` runs as the signed-in, non-elevated Windows user. It starts the same
@@ -114,12 +116,12 @@ single installed executable: the crash-recovery supervisor and its runtime child
 This prevents two identical entries from appearing during a normal update. Inno
 still uses Restart Manager as a fallback. Setup preserves the encrypted device
 registry and only replaces the application and registration needed for the new
-version. Users update by running the newer Setup.exe over the installed version;
-uninstalling first erases all paired-device credentials by design.
+version. Users update by running the newer Setup.exe over the installed version.
 
 Uninstall runs `unconfigure-system` before files are removed, then deletes the Run
-value, shortcut, application directory, ProgramData configuration/key/log, and
-Add/Remove Programs entry. The uninstaller is idempotent if a firewall rule, URL ACL,
+value, shortcut, application directory, and Add/Remove Programs entry. Each user's
+`%LOCALAPPDATA%\WakePcSleepBridge` stays, because an elevated uninstaller should not
+reach into user profiles; delete it to erase that user's paired devices. The uninstaller is idempotent if a firewall rule, URL ACL,
 or development scheduled task is already absent.
 
 ## Security and release requirements
@@ -131,11 +133,8 @@ or development scheduled task is already absent.
   modifies the firewall. Unattended installation requires explicit confirmation.
 - Pairing and power-action controls remain as defined in
   [`sleep-bridge.md`](sleep-bridge.md).
-- Credential plaintext never remains in ProgramData after the signed-in-user runtime
-  starts. Per-device keys and all pairing material are authenticated and encrypted
-  together with DPAPI `CurrentUser`. Other local accounts can still replace or
-  delete the shared ciphertext and cause denial of service, but cannot decrypt or
-  forge it.
+- Per-device keys and all pairing material are authenticated and encrypted together
+  with DPAPI `CurrentUser`, in a folder other standard local accounts cannot write.
 - Hobby releases are unsigned; Authenticode signing is optional.
   The build's `-SignToolCommand` connects the signing command to Inno's `SignTool`.
 - If configured, the code-signing certificate and timestamp service are credentials and are

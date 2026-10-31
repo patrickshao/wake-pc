@@ -1,5 +1,7 @@
 import { runPnpm } from "./tooling.mjs";
 import { request } from "node:https";
+import { readFileSync } from "node:fs";
+import { evaluateAdvisories } from "./advisory_policy.mjs";
 
 const listPnpmGraph = (options) => runPnpm(["list", "--depth", "Infinity", "--json"], { stdio: "pipe", ...options });
 const graph = JSON.parse(
@@ -82,15 +84,32 @@ const findings = Object.entries(response).flatMap(([packageName, advisories]) =>
 );
 const versionCount = [...packages.values()].reduce((total, versions) => total + versions.size, 0);
 
-if (findings.length) {
-  for (const finding of findings) {
-    console.error(
-      `${finding.severity || "unknown"}: ${finding.packageName} — ${finding.title} (${finding.url})`,
-    );
+const productionPackages = new Set();
+const visitProduction = (dependencies) => {
+  for (const [name, dependency] of Object.entries(dependencies || {})) {
+    productionPackages.add(name);
+    visitProduction(dependency?.dependencies);
   }
+};
+for (const root of JSON.parse(runPnpm(["list", "--prod", "--depth", "Infinity", "--json"], { stdio: "pipe", encoding: "utf8" }))) {
+  visitProduction(root.dependencies);
+}
+
+const { accepted } = JSON.parse(readFileSync(new URL("../security/accepted-advisories.json", import.meta.url), "utf8"));
+const { failures, acceptedFindings } = evaluateAdvisories({
+  findings,
+  installed: packages,
+  productionPackages,
+  accepted,
+  today: new Date().toISOString().slice(0, 10),
+});
+
+for (const line of acceptedFindings) console.log(`Accepted build-only risk: ${line}`);
+if (failures.length) {
+  for (const failure of failures) console.error(failure);
   process.exit(1);
 }
 
 console.log(
-  `No known vulnerabilities found for ${versionCount} locked package versions via npm's bulk advisory endpoint.`,
+  `No unaccepted vulnerabilities found for ${versionCount} locked package versions via npm's bulk advisory endpoint.`,
 );

@@ -25,7 +25,7 @@ below. Public hobby releases are unsigned; Authenticode remains optional.
 - Both patched tarballs carry registry signatures and SHA-512 integrity metadata;
   neither publishes provenance attestations. The npm verification resolution checks
   130 registry signatures and 6 attestations. The authoritative pnpm graph contains
-  148 locked versions and the npm bulk advisory scan reports no known vulnerabilities.
+  148 locked versions.
 - Added `global.json` with SDK 10.0.302 and roll-forward disabled. Installing an SDK
   in CI alone did not select it: newer runner SDKs caused locked ILLink restore drift.
   The NuGet lockfiles and runtime dependency versions are unchanged.
@@ -137,8 +137,9 @@ manual acceptance boundary recorded in `docs/windows-installer.md`.
 
 The official Decky Rollup preset currently brings four deprecated, build-only
 transitives: `glob@10.5.0`, `glob@7.2.3`, `rimraf@3.0.2`, and `inflight@1.0.6`.
-The current npm advisory scan finds no vulnerability in the locked versions;
-`glob@10.5.0` is outside the corrected vulnerable range for CVE-2025-64756.
+`glob@10.5.0` is outside the corrected vulnerable range for CVE-2025-64756. Advisories
+later published against `glob`, `minimatch` and `deepmerge` in this preset are recorded with
+their reasoning in `security/accepted-advisories.json`.
 `inflight` is deprecated for a memory leak. These packages only operate on local
 build files with lifecycle execution disabled and never enter the ZIP. Replacing the
 official Decky preset solely to remove them would increase compatibility risk, so the
